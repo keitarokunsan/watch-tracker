@@ -15,6 +15,7 @@ on:
     branches:
       - main
     paths:
+      - ".github/workflows/update-expiring.yml"
       - "config/watchlist.txt"
       - "docs/index.html"
       - "docs/styles.css"
@@ -74,16 +75,35 @@ jobs:
 
       - name: Commit updated data files
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          TMP_DATA="$(mktemp -d)"
           for f in docs/data/expiring.json docs/data/history.json docs/data/tmdb_cache.json; do
             if [ -f "$f" ]; then
-              git add "$f"
+              cp "$f" "$TMP_DATA/$(basename "$f")"
+              rm -f "$f"
             fi
           done
+
+          # Always sync with latest origin/main before committing generated data
+          # to avoid non-fast-forward / add-add conflicts with concurrent runs.
+          git fetch origin main
+          git checkout -f -B main origin/main
+
+          mkdir -p docs/data
+          for f in expiring.json history.json tmdb_cache.json; do
+            if [ -f "$TMP_DATA/$f" ]; then
+              cp "$TMP_DATA/$f" "docs/data/$f"
+              git add "docs/data/$f"
+            fi
+          done
+          rm -rf "$TMP_DATA"
+
           if ! git diff --cached --quiet; then
             git commit -m "chore: update Prime Video expiring data [skip ci]"
-            git push
+            git push origin HEAD:main
           else
             echo "No data changes to commit."
           fi
