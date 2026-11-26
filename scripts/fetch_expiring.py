@@ -49,7 +49,7 @@ def format_expiry_fields(
         return {
             "expiresAt": None,
             "expiresDate": None,
-            "expiresDateLabel": "まもなく終了（日付未確定）",
+            "expiresDateLabel": "30日以内（日付未確定）",
             "daysLeft": None,
         }
 
@@ -179,7 +179,17 @@ def _load_json_safe(path: Path) -> dict[str, Any]:
 def main() -> int:
     country = os.environ.get("STREAMING_COUNTRY", "jp").strip() or "jp"
     catalogs = os.environ.get("STREAMING_CATALOGS", "prime.subscription").strip() or "prime.subscription"
-    max_pages = int(os.environ.get("MAX_API_PAGES", "20"))
+    max_pages = int(os.environ.get("MAX_API_PAGES", "25"))
+    include_unknown_dates = os.environ.get("INCLUDE_UNKNOWN_DATES", "true").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+    )
+    include_seasons = os.environ.get("INCLUDE_SEASONS", "true").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+    )
     urgent_days = int(os.environ.get("URGENT_DAYS", "3"))
     force_notify = os.environ.get("FORCE_NOTIFY", "").strip().lower() in ("1", "true", "yes")
     pages_url = os.environ.get("PAGES_URL", "").strip()
@@ -200,15 +210,37 @@ def main() -> int:
 
     now_jst = datetime.now(JST)
     watchlist_entries = load_watchlist(WATCHLIST_PATH)
-    print(f"[info] Fetching expiring titles from {api_config.provider_name} ({country}/{catalogs})...")
+    print(
+        f"[info] Fetching expiring titles from {api_config.provider_name} "
+        f"({country}/{catalogs}, include_unknown_dates={include_unknown_dates}, "
+        f"include_seasons={include_seasons})..."
+    )
 
     client = StreamingAvailabilityClient(api_config)
-    changes, shows_map, pages_fetched = client.fetch_expiring_changes(
+    changes, shows_map, show_pages = client.fetch_expiring_changes(
         country=country,
         catalogs=catalogs,
         max_pages=max_pages,
+        item_type="show",
+        include_unknown_dates=include_unknown_dates,
     )
-    print(f"[info] Fetched {len(changes)} change records across {pages_fetched} page(s).")
+    print(f"[info] Fetched {len(changes)} show change records across {show_pages} page(s).")
+
+    if include_seasons:
+        season_changes, season_shows, season_pages = client.fetch_expiring_changes(
+            country=country,
+            catalogs=catalogs,
+            max_pages=max_pages,
+            item_type="season",
+            include_unknown_dates=include_unknown_dates,
+        )
+        changes.extend(season_changes)
+        for sid, sdata in season_shows.items():
+            shows_map.setdefault(sid, sdata)
+        print(
+            f"[info] Fetched {len(season_changes)} season change records across "
+            f"{season_pages} page(s)."
+        )
 
     raw_items = normalize_expiring_records(changes, shows_map, country=country)
 

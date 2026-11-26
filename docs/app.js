@@ -292,7 +292,7 @@
   function daysBadgeMeta(item) {
     const d = item.daysLeft;
     if (d === null || d === undefined) {
-      return { text: "期限未確定", cls: "days-badge--unknown" };
+      return { text: "30日以内", cls: "days-badge--unknown" };
     }
     if (d <= 0) {
       return { text: "本日終了", cls: "days-badge--critical" };
@@ -304,6 +304,12 @@
       return { text: `あと${d}日`, cls: "days-badge--soon" };
     }
     return { text: `あと${d}日`, cls: "" };
+  }
+
+  function formatSeasonTag(item) {
+    const seasons = Array.isArray(item.expiringSeasons) ? item.expiringSeasons : [];
+    if (!seasons.length) return "";
+    return `対象: シーズン${seasons.join("・")}`;
   }
 
   function createCardElement(item, index) {
@@ -405,7 +411,10 @@
     const metaParts = [];
     if (item.releaseYear) metaParts.push(`${item.releaseYear}年`);
     if (item.rating) metaParts.push(`★ ${item.rating}%`);
-    if (item.showType === "series" && item.seasonCount) {
+    const seasonTag = formatSeasonTag(item);
+    if (seasonTag) {
+      metaParts.push(seasonTag);
+    } else if (item.showType === "series" && item.seasonCount) {
       metaParts.push(`全${item.seasonCount}シーズン`);
     } else if (item.runtime) {
       metaParts.push(`${item.runtime}分`);
@@ -533,9 +542,11 @@
     list.className = "detail-meta-list";
 
     const badge = daysBadgeMeta(item);
+    const seasonTag = formatSeasonTag(item);
     const rows = [
-      ["配信期限", `${item.expiresDateLabel || "期限未確定"}（${badge.text}）`],
+      ["配信期限", `${item.expiresDateLabel || "30日以内（日付未確定）"}（${badge.text}）`],
       ["種別", item.showType === "series" ? "ドラマ・アニメ" : "映画"],
+      seasonTag ? ["終了対象", seasonTag.replace(/^対象:\s*/, "")] : null,
       item.title && item.title !== item.displayTitle ? ["英題 / 原題", item.title] : null,
       item.releaseYear ? ["公開・放送年", `${item.releaseYear}年`] : null,
       item.rating ? ["評価スコア", `${item.rating}%`] : null,

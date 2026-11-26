@@ -16,14 +16,19 @@ AMAZON_LEAVING_SOON_URL = "https://www.amazon.co.jp/s?rh=n%3A4217521051"
 def _format_days_badge(item: dict[str, Any]) -> str:
     days = item.get("daysLeft")
     if days is None:
-        return "期限未確定"
+        return "30日以内"
     if days <= 0:
         return "本日終了"
     return f"あと{days}日"
 
 
-def _format_type_label(show_type: str | None) -> str:
-    return "ドラマ・アニメ" if show_type == "series" else "映画"
+def _format_type_label(item: dict[str, Any]) -> str:
+    if item.get("showType") == "series":
+        seasons = item.get("expiringSeasons") or []
+        if seasons:
+            return "ドラマ・アニメ S" + "/".join(str(s) for s in seasons[:4])
+        return "ドラマ・アニメ"
+    return "映画"
 
 
 def select_notification_items(
@@ -155,7 +160,7 @@ def build_discord_payloads(
         link = it.get("primeLink") or AMAZON_LEAVING_SOON_URL
         date_text = it.get("expiresDateLabel") or "期限未確定"
         badge = _format_days_badge(it)
-        kind = _format_type_label(it.get("showType"))
+        kind = _format_type_label(it)
         return f"• **[{title}]({link})** — `{date_text}`（{badge}・{kind}）"
 
     def add_section_embeds(
@@ -268,7 +273,7 @@ def build_email_html(
             esc_link = html.escape(it.get("primeLink") or AMAZON_LEAVING_SOON_URL)
             esc_date = html.escape(it.get("expiresDateLabel") or "期限未確定")
             esc_badge = html.escape(_format_days_badge(it))
-            esc_kind = html.escape(_format_type_label(it.get("showType")))
+            esc_kind = html.escape(_format_type_label(it))
             poster = it.get("posterUrl") or ""
             img_cell = (
                 f'<img src="{html.escape(poster)}" alt="{esc_title}" '

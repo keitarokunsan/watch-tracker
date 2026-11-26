@@ -168,7 +168,45 @@ class StreamingApiTests(unittest.TestCase):
             self.assertEqual(len(changes), 2)
             self.assertEqual(set(shows.keys()), {"1", "2"})
             self.assertEqual(mock_get.call_count, 2)
+            self.assertEqual(mock_get.call_args_list[0][0][1]["include_unknown_dates"], "true")
             self.assertEqual(mock_get.call_args_list[1][0][1]["cursor"], "cursor-2")
+
+    def test_normalize_merges_season_level_expirations(self) -> None:
+        changes = [
+            {
+                "changeType": "expiring",
+                "itemType": "season",
+                "showId": "500",
+                "showType": "series",
+                "season": 2,
+                "streamingOptionType": "subscription",
+                "timestamp": None,
+                "link": "https://www.amazon.co.jp/gp/video/detail/B00SEASON2",
+            },
+            {
+                "changeType": "expiring",
+                "itemType": "season",
+                "showId": "500",
+                "showType": "series",
+                "season": 1,
+                "streamingOptionType": "subscription",
+                "timestamp": 1800000100,
+                "link": "https://www.amazon.co.jp/gp/video/detail/B00SEASON1",
+            },
+        ]
+        shows_map = {
+            "500": {
+                "id": "500",
+                "title": "Sample Anime",
+                "originalTitle": "サンプルアニメ",
+                "showType": "series",
+            }
+        }
+        items = normalize_expiring_records(changes, shows_map, country="jp")
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["expiringSeasons"], [1, 2])
+        self.assertEqual(items[0]["expiresOn"], 1800000100)
+        self.assertEqual(items[0]["showType"], "series")
 
 
 class TmdbAndEnrichTests(unittest.TestCase):
@@ -317,11 +355,12 @@ class NotificationTests(unittest.TestCase):
         self.assertEqual([x["id"] for x in sel3["watchlist"]], ["wl-1"])
 
     def test_generate_sample_data_writes_valid_json(self) -> None:
-        out_path = generate_sample_data()
-        data = json.loads(out_path.read_text(encoding="utf-8"))
-        self.assertTrue(data["isDemo"])
-        self.assertGreaterEqual(len(data["items"]), 5)
-        self.assertTrue(all(it.get("posterUrl") for it in data["items"]))
+        with tempfile.TemporaryDirectory() as tmp:
+            out_path = generate_sample_data(Path(tmp) / "expiring.json")
+            data = json.loads(out_path.read_text(encoding="utf-8"))
+            self.assertTrue(data["isDemo"])
+            self.assertGreaterEqual(len(data["items"]), 5)
+            self.assertTrue(all(it.get("posterUrl") for it in data["items"]))
 
 
 if __name__ == "__main__":

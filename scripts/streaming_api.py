@@ -153,7 +153,9 @@ class StreamingAvailabilityClient:
         self,
         country: str = "jp",
         catalogs: str = "prime.subscription",
-        max_pages: int = 20,
+        max_pages: int = 25,
+        item_type: str = "show",
+        include_unknown_dates: bool = True,
     ) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], int]:
         """Paginate through /changes?change_type=expiring and return (changes, shows_map, pages)."""
         all_changes: list[dict[str, Any]] = []
@@ -166,7 +168,8 @@ class StreamingAvailabilityClient:
                 "country": country,
                 "catalogs": catalogs,
                 "change_type": "expiring",
-                "item_type": "show",
+                "item_type": item_type,
+                "include_unknown_dates": "true" if include_unknown_dates else "false",
                 "order_direction": "asc",
                 "output_language": "en",
             }
@@ -204,7 +207,7 @@ def normalize_expiring_records(
     shows_map: dict[str, dict[str, Any]],
     country: str = "jp",
 ) -> list[dict[str, Any]]:
-    """Combine changes + showsMap into deduplicated normalized item dicts."""
+    """Combine show/season changes + showsMap into deduplicated normalized item dicts."""
     by_show_id: dict[str, dict[str, Any]] = {}
 
     for change in changes:
@@ -220,11 +223,15 @@ def normalize_expiring_records(
         if not show_id:
             continue
 
+        item_type = str(change.get("itemType") or "show").lower()
+        season_num = change.get("season")
+        season_int = int(season_num) if isinstance(season_num, int) and season_num > 0 else None
+
         show = shows_map.get(show_id) or {}
         prime_opt = _extract_prime_option(show, country)
 
         ts = change.get("timestamp")
-        if ts is None and prime_opt:
+        if ts is None and item_type == "show" and prime_opt:
             ts = prime_opt.get("expiresOn")
         expires_on = int(ts) if isinstance(ts, (int, float)) and ts > 0 else None
 
@@ -238,11 +245,17 @@ def normalize_expiring_records(
                 existing["expiresOn"] = expires_on
             if not existing.get("primeLink") and change.get("link"):
                 existing["primeLink"] = str(change["link"])
+            if item_type == "show":
+                existing["_wholeShowExpiring"] = True
+            elif season_int is not None:
+                existing["_expiringSeasons"].add(season_int)
             continue
 
         title_en = str(show.get("title") or "").strip()
         original_title = str(show.get("originalTitle") or "").strip()
         show_type = str(show.get("showType") or change.get("showType") or "movie").lower()
+        if item_type == "season":
+            show_type = "series"
 
         image_set = show.get("imageSet") if isinstance(show.get("imageSet"), dict) else {}
         poster_url = _pick_image(
@@ -295,6 +308,16 @@ def normalize_expiring_records(
             "primeLink": prime_link,
             "expiresOn": expires_on,
             "expiresSoon": True,
+            "_wholeShowExpiring": item_type == "show",
+            "_expiringSeasons": {season_int} if season_int is not None else set(),
         }
 
-    return list(by_show_id.values())
+    results: list[dict[str, Any]] = []
+    for record in by_show_id.values():
+        whole_show = record.pop("_wholeShowExpiring")
+        seasons_set = record.pop("_expiringSeasons")
+        # Expose specific expiring seasons when only season-level changes were reported
+        record["expiringSeasons"] = [] if whole_show else sorted(seasons_set)
+        results.append(record)
+
+    return results

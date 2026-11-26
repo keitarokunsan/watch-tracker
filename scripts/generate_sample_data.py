@@ -54,7 +54,7 @@ def _svg_poster_data_uri(title: str, subtitle: str, bg1: str, bg2: str, accent: 
     return "data:image/svg+xml;charset=UTF-8," + urllib.parse.quote(svg)
 
 
-def generate_sample_data() -> Path:
+def generate_sample_data(output_path: Path | None = None) -> Path:
     now_jst = datetime.now(JST)
 
     def ts_in_days(days: int) -> int:
@@ -229,12 +229,13 @@ def generate_sample_data() -> Path:
         repo_watchlist_count=len(demo_watchlist),
     )
 
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    EXPIRING_JSON_PATH.write_text(
+    target_path = Path(output_path) if output_path is not None else EXPIRING_JSON_PATH
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(
         json.dumps(doc, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    return EXPIRING_JSON_PATH
+    return target_path
 
 
 if __name__ == "__main__":
