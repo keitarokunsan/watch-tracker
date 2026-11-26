@@ -1,0 +1,101 @@
+name: Update Prime Video Expiring List & Deploy Pages
+
+on:
+  schedule:
+    # 毎日 日本時間 07:00 (UTC 22:00) に自動実行
+    - cron: "0 22 * * *"
+  workflow_dispatch:
+    inputs:
+      force_notify:
+        description: "新規差分がなくてもテスト通知を強制送信する"
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches:
+      - main
+    paths:
+      - "config/watchlist.txt"
+      - "docs/index.html"
+      - "docs/styles.css"
+      - "docs/app.js"
+      - "scripts/**"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "prime-video-expiring-pages"
+  cancel-in-progress: false
+
+jobs:
+  update-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch expiring Prime Video titles & send notifications
+        env:
+          STREAMING_AVAILABILITY_API_KEY: ${{ secrets.STREAMING_AVAILABILITY_API_KEY }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          PAGES_URL: ${{ secrets.PAGES_URL || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
+          FORCE_NOTIFY: ${{ github.event.inputs.force_notify || 'false' }}
+          STREAMING_COUNTRY: "jp"
+          STREAMING_CATALOGS: "prime.subscription"
+        run: |
+          if [ -z "$STREAMING_AVAILABILITY_API_KEY" ] && [ -z "$RAPIDAPI_KEY" ]; then
+            echo "::warning::APIキー（STREAMING_AVAILABILITY_API_KEY または RAPIDAPI_KEY）が未設定のためデータ取得をスキップし、現在のサンプルページをデプロイします。"
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "GitHubリポジトリの Settings > Secrets and variables > Actions にAPIキーを設定してください。"
+            fi
+          else
+            python scripts/fetch_expiring.py
+          fi
+
+      - name: Commit updated data files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for f in docs/data/expiring.json docs/data/history.json docs/data/tmdb_cache.json; do
+            if [ -f "$f" ]; then
+              git add "$f"
+            fi
+          done
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update Prime Video expiring data [skip ci]"
+            git push
+          else
+            echo "No data changes to commit."
+          fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "docs"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

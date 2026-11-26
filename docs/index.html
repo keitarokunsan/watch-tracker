@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prime Video 見放題終了トラッカー</title>
+  <meta name="description" content="Amazon Prime Video（日本）でまもなく見放題終了となる作品のポスター一覧・期限カウントダウン・ウォッチリスト照合ページ">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    try {
+      const saved = localStorage.getItem("color-scheme");
+      if (saved === "light" || saved === "dark") {
+        document.querySelector('meta[name="color-scheme"]').content = saved;
+      }
+    } catch (_) {}
+  </script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand-group">
+        <div class="brand-eyebrow">AMAZON PRIME VIDEO JP</div>
+        <h1 class="site-title">見放題終了トラッカー</h1>
+        <p class="site-subtitle">
+          まもなくプライム会員特典から外れる作品を期限順に一覧表示。サムネイルをクリックして作品ページへ移動できます。
+        </p>
+      </div>
+      <div class="header-actions">
+        <a
+          id="amazonLeavingLink"
+          class="btn btn-primary"
+          href="https://www.amazon.co.jp/s?rh=n%3A4217521051"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Amazon公式: 30日以内に終了一覧 ↗
+        </a>
+        <button id="openSettingsBtn" class="btn btn-secondary" type="button">
+          ★ ウォッチリスト・設定
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <div id="demoBanner" class="banner banner-info" hidden>
+      <div>
+        <strong>サンプルデータ表示中：</strong>
+        現在はプレビュー用のデモデータを表示しています。GitHub Secrets に API キーを設定してワークフローを実行すると、最新の配信終了予定作品と実ポスターに自動更新されます。
+      </div>
+    </div>
+
+    <div id="errorBanner" class="banner banner-error" hidden></div>
+
+    <section class="stats-grid" aria-label="サマリー">
+      <div class="stat-card">
+        <span class="stat-label">終了予定 合計</span>
+        <strong id="statTotal" class="stat-value">-</strong>
+      </div>
+      <div class="stat-card stat-card--urgent">
+        <span class="stat-label">7日以内に終了</span>
+        <strong id="statUrgent" class="stat-value">-</strong>
+      </div>
+      <div class="stat-card stat-card--watchlist">
+        <span class="stat-label">★ ウォッチリスト一致</span>
+        <strong id="statWatchlist" class="stat-value">-</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">最終更新</span>
+        <strong id="statUpdated" class="stat-value stat-value--small">読み込み中...</strong>
+      </div>
+    </section>
+
+    <section class="controls-bar" aria-label="検索・絞り込み・並び替え">
+      <div class="search-field">
+        <label class="visually-hidden" for="searchInput">タイトル・ジャンルで検索</label>
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="タイトル・原題・ジャンルで検索..."
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="filter-group" role="group" aria-label="絞り込み条件">
+        <button type="button" class="chip" data-filter="all" aria-pressed="true">すべて</button>
+        <button type="button" class="chip" data-filter="watchlist" aria-pressed="false">★ ウォッチリスト</button>
+        <button type="button" class="chip" data-filter="urgent" aria-pressed="false">7日以内</button>
+        <button type="button" class="chip" data-filter="movie" aria-pressed="false">映画</button>
+        <button type="button" class="chip" data-filter="series" aria-pressed="false">ドラマ・アニメ</button>
+      </div>
+
+      <div class="sort-field">
+        <label for="sortSelect" class="sort-label">並び替え</label>
+        <select id="sortSelect">
+          <option value="expiry-asc">終了が近い順</option>
+          <option value="expiry-desc">終了が遅い順</option>
+          <option value="watchlist-first">★ ウォッチリスト優先</option>
+          <option value="rating-desc">評価が高い順</option>
+          <option value="title-asc">タイトル順</option>
+        </select>
+      </div>
+    </section>
+
+    <div class="result-meta">
+      <span id="visibleCountText">データを読み込んでいます...</span>
+    </div>
+
+    <p id="gridStatus" role="status" class="visually-hidden"></p>
+
+    <section id="cardGrid" class="card-grid" aria-label="配信終了予定作品一覧"></section>
+
+    <div id="emptyState" class="empty-state" hidden>
+      <p id="emptyStateText">条件に一致する作品はありませんでした。</p>
+      <button id="resetFiltersBtn" class="btn btn-secondary" type="button">絞り込みをリセット</button>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>
+        ※ 配信終了日はライセンス契約の都合により予告なく変更・延長される場合があります。最終的な視聴可否は Amazon Prime Video 公式サイトをご確認ください。
+      </p>
+      <p class="footer-meta">
+        データソース: Streaming Availability API <span id="tmdbAttribution" hidden> / TMDB API（邦題・ポスター補完）</span>
+      </p>
+    </div>
+  </footer>
+
+  <!-- ウォッチリスト・設定モーダル -->
+  <dialog id="settingsDialog" class="modal" closedby="any" aria-labelledby="settingsDialogTitle">
+    <div class="modal-header">
+      <h2 id="settingsDialogTitle" class="modal-title">★ ウォッチリスト・表示設定</h2>
+      <form method="dialog">
+        <button class="icon-btn" type="submit" aria-label="閉じる">✕</button>
+      </form>
+    </div>
+
+    <div class="modal-body">
+      <section class="modal-section">
+        <h3>自分のウォッチリスト（ブラウザ保存）</h3>
+        <p class="help-text">
+          気になる作品名を1行に1件ずつ入力すると、一覧上で <strong>★ウォッチリスト</strong> としてハイライト・絞り込みできます。
+          （リポジトリの <code>config/watchlist.txt</code> に登録した作品と合わせて照合されます）
+        </p>
+        <label class="visually-hidden" for="watchlistTextarea">ウォッチリスト作品名（1行1作品）</label>
+        <textarea
+          id="watchlistTextarea"
+          rows="7"
+          placeholder="例:&#10;インターステラー&#10;呪術廻戦&#10;ブレードランナー 2049"
+        ></textarea>
+        <div class="modal-actions">
+          <button id="saveWatchlistBtn" class="btn btn-primary" type="button">保存して反映</button>
+          <button id="copyWatchlistTxtBtn" class="btn btn-secondary" type="button">watchlist.txt 用にコピー</button>
+          <span id="watchlistSaveFeedback" class="feedback-text" aria-live="polite"></span>
+        </div>
+      </section>
+
+      <section class="modal-section">
+        <h3>Prime Video から1クリックで取り込む（ブックマークレット）</h3>
+        <p class="help-text">
+          下のボタンをブラウザのブックマークバーへドラッグして保存し、
+          <a href="https://www.amazon.co.jp/gp/video/mystuff/watchlist" target="_blank" rel="noopener noreferrer">Amazon Prime Video のウォッチリスト画面 ↗</a>
+          でクリックすると、表示中の作品名一覧がクリップボードにコピーされます。そのまま上の欄に貼り付けてください。
+        </p>
+        <div class="bookmarklet-box">
+          <a id="bookmarkletLink" class="btn btn-accent" href="#">★ Primeウォッチリスト取得</a>
+          <button id="copyBookmarkletBtn" class="btn btn-secondary" type="button">コードをコピー</button>
+          <span id="bookmarkletFeedback" class="feedback-text" aria-live="polite"></span>
+        </div>
+      </section>
+
+      <section class="modal-section">
+        <h3>表示テーマ</h3>
+        <fieldset class="theme-fieldset">
+          <legend class="visually-hidden">カラーテーマ設定</legend>
+          <label class="theme-option">
+            <input type="radio" name="themeScheme" value="system" checked>
+            <span id="systemThemeLabel">システム設定に従う</span>
+          </label>
+          <label class="theme-option">
+            <input type="radio" name="themeScheme" value="light">
+            <span>ライト</span>
+          </label>
+          <label class="theme-option">
+            <input type="radio" name="themeScheme" value="dark">
+            <span>ダーク</span>
+          </label>
+        </fieldset>
+      </section>
+    </div>
+
+    <div class="modal-footer">
+      <form method="dialog">
+        <button class="btn btn-secondary" type="submit">閉じる</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 作品詳細モーダル -->
+  <dialog id="detailDialog" class="modal modal--detail" closedby="any" aria-labelledby="detailDialogTitle">
+    <div class="modal-header">
+      <h2 id="detailDialogTitle" class="modal-title">作品詳細</h2>
+      <form method="dialog">
+        <button class="icon-btn" type="submit" aria-label="閉じる">✕</button>
+      </form>
+    </div>
+    <div id="detailDialogBody" class="modal-body detail-body"></div>
+    <div class="modal-footer detail-footer">
+      <a
+        id="detailLeavingListBtn"
+        class="btn btn-secondary"
+        href="https://www.amazon.co.jp/s?rh=n%3A4217521051"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        30日以内終了一覧 ↗
+      </a>
+      <a
+        id="detailPrimeBtn"
+        class="btn btn-primary"
+        href="#"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Prime Videoで作品を開く ↗
+      </a>
+    </div>
+  </dialog>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
