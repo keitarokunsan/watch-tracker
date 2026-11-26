@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Prime Video 見放題終了トラッカー (JP)",
+  "version": "1.0.0",
+  "description": "Amazon Prime Video（日本）の「30日以内にプライム会員特典ではなくなる作品」全件と正確な終了期限・ウォッチリスト一致を一覧確認できる拡張機能",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Prime Video 見放題終了トラッカーを開く",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs",
+    "scripting",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://www.amazon.co.jp/*",
+    "https://www.primevideo.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://discord.com/*",
+    "https://discordapp.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.amazon.co.jp/*",
+        "https://www.primevideo.com/*"
+      ],
+      "js": [
+        "content/amazon-capture.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
