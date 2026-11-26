@@ -41,6 +41,13 @@
     "posterJa": "https://image.tmdb.org/t/p/w342/sHxdMqEN66z5r6HruODTprwXfM0.jpg",
     "titleJa": "ドリームガールズ"
   },
+  "movie/11358": {
+    "backdropJa": "https://image.tmdb.org/t/p/w780/kK9WAzCaxN5vxoTgO38wiPIe9ba.jpg",
+    "fetchedAt": 1795732909,
+    "overviewJa": "",
+    "posterJa": "https://image.tmdb.org/t/p/w342/2sdmKtRz2SlGSLxxZDePKm5zxus.jpg",
+    "titleJa": "ワイルド・タウン／英雄伝説"
+  },
   "movie/11576": {
     "backdropJa": "https://image.tmdb.org/t/p/w780/wSiBXaJ2PtlxUGH2waIxQZjFPhg.jpg",
     "fetchedAt": 1795674591,
@@ -75,6 +82,13 @@
     "overviewJa": "",
     "posterJa": "https://image.tmdb.org/t/p/w342/hqP8NwFfaPeY5gREJjhW10n6Etr.jpg",
     "titleJa": "怪奇！アンビリーバブル ～恐怖感染～"
+  },
+  "movie/1214548": {
+    "backdropJa": "",
+    "fetchedAt": 1795732909,
+    "overviewJa": "",
+    "posterJa": "https://image.tmdb.org/t/p/w342/zecpb8vGyAtXobJ89o7Jf73sYAd.jpg",
+    "titleJa": "怪奇！アンビリーバブル 投稿！呪縛寫眞24"
   },
   "movie/1226994": {
     "backdropJa": "https://image.tmdb.org/t/p/w780/2AuzU1JiYBayCE7dYeltpzEwbNM.jpg",
@@ -117,6 +131,13 @@
     "overviewJa": "",
     "posterJa": "https://image.tmdb.org/t/p/w342/cwdkIY8ry5NbXIhAzqIeNaQHIsL.jpg",
     "titleJa": "aespa: Amazon Music Live"
+  },
+  "movie/1880": {
+    "backdropJa": "https://image.tmdb.org/t/p/w780/9fOfsVHZHig6MHPHczv0zMY6cKc.jpg",
+    "fetchedAt": 1795732909,
+    "overviewJa": "アメリカ　コロラド州の平和な田舎町。昼下がりに異様な数の兵士がパラシュートで次々と降下してくる。ソビエトの兵装の兵士達は次々と降下し銃撃を開始した。武器を持たぬ市民は虐殺されていくが高校生ジェドはその仲間達は間一髪山中へ逃げ込み少ない武器を手に取り反撃を開始する。",
+    "posterJa": "https://image.tmdb.org/t/p/w342/a2GkHcioc2QEFJbQk1NTB85u3vD.jpg",
+    "titleJa": "若き勇者たち"
   },
   "movie/218": {
     "backdropJa": "https://image.tmdb.org/t/p/w780/ffdqHMWkh1h9MABwIfbfRJhgFW6.jpg",
@@ -397,6 +418,13 @@
     "overviewJa": "兄が仕事で留守の間、美しい妻ラウラの護衛を頼まれた少年サンドロ。その日から、どこに行くにもラウラから離れないようになった彼は、友達と遊べる時間が極端に減ってしまい、彼に想いを寄せるロージーも寂しそうにしている。それを見たラウラは、サンドロに恋の手ほどきを始める。しかし、サンドロにはロージーよりグラマーで美しいラウラの方がはるかに魅力的に映り、彼女への恋心を募らせてしまうのだった。",
     "posterJa": "https://image.tmdb.org/t/p/w342/yGjGpaiB4DQL3WJ8gUsHtWg5jzy.jpg",
     "titleJa": "続・青い体験"
+  },
+  "movie/823452": {
+    "backdropJa": "https://image.tmdb.org/t/p/w780/gub9e0qRZWmmzTV77A6T95HELIF.jpg",
+    "fetchedAt": 1795732909,
+    "overviewJa": "",
+    "posterJa": "https://image.tmdb.org/t/p/w342/ncJMztHprw3gLRAnDjNnnT23CIt.jpg",
+    "titleJa": "The Boys in the Boat"
   },
   "movie/8416": {
     "backdropJa": "https://image.tmdb.org/t/p/w780/xKhnjQA5wrAUaopEKegdKD3Yi26.jpg",
